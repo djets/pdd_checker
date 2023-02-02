@@ -34,4 +34,4 @@ spring:
 telegram:
   api-url: "https://api.telegram.org"
   bot-username: "@ppdcheck_testbot"
-  bot-token: "input bot token"
+  bot-token-path: "/home/djet/Documents/javaLearning/telegramBots/token"

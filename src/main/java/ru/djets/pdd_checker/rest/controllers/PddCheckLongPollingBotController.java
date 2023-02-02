@@ -14,28 +14,34 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageMe
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import ru.djets.pdd_checker.config.AppSetUpBeforeStarting;
 import ru.djets.pdd_checker.config.TelegramBotProperties;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 @Component
 @Getter
 @Setter
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class PddCheckLongPollingBotController extends TelegramLongPollingBot {
-    TelegramBotProperties properties;
+    AppSetUpBeforeStarting setUpBeforeStarting;
 
     @Autowired
-    public PddCheckLongPollingBotController(TelegramBotProperties properties) {
-        this.properties = properties;
+    public PddCheckLongPollingBotController(AppSetUpBeforeStarting setUpBeforeStarting) {
+        this.setUpBeforeStarting = setUpBeforeStarting;
     }
 
     @Override
     public String getBotUsername() {
-        return properties.getBotPath();
+        return setUpBeforeStarting.getBotPath();
     }
 
     @Override
     public String getBotToken() {
-        return properties.getBotToken();
+        return setUpBeforeStarting.getBotToken();
     }
 
     @Override
