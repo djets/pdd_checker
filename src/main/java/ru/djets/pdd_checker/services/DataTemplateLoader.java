@@ -32,7 +32,7 @@ public class DataTemplateLoader {
                             .map(integer1 -> {
                                 Answer answer = new Answer();
                                 answer.setAnswerText("Answer-" + integer1);
-                                answer.setCorrectAnswer(RandomGenerator.getDefault().nextBoolean());
+                                answer.setCorrectAnswer(RandomGenerator.getDefault().isDeprecated());
                                 return answer;
                             })
                             .forEach(question::addAnswer);

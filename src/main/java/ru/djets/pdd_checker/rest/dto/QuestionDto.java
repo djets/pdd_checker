@@ -7,6 +7,7 @@ import lombok.experimental.FieldDefaults;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Data
 @Accessors(chain = true)
@@ -26,5 +27,25 @@ public class QuestionDto {
     public void removeAnswerDto(AnswerDto answerDto) {
         answerDtoList.remove(answerDto);
         answerDto.setQuestionDto(null);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        QuestionDto that = (QuestionDto) o;
+
+        if (!textQuestion.equals(that.textQuestion)) return false;
+        if (!Objects.equals(pathImage, that.pathImage)) return false;
+        return Objects.equals(description, that.description);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = textQuestion.hashCode();
+        result = 31 * result + (pathImage != null ? pathImage.hashCode() : 0);
+        result = 31 * result + (description != null ? description.hashCode() : 0);
+        return result;
     }
 }

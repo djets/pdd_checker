@@ -38,7 +38,9 @@ public class MessageHandlerImpl implements MessageHandler {
                 .chatId(chatId)
                 .text("Билеты: \n")
                 .replyMarkup(KeyboardMaker
-                        .getInlineKeyboardWithSequenceNumbers(CallbackPrefix.TICKET_, ticketService.getAll()))
+                        .getInlineKeyboardWithSequenceNumbers(
+                                CallbackPrefix.TICKET_,
+                                ticketService.getAll().size()))
                 .build();
     }
 
@@ -48,8 +50,9 @@ public class MessageHandlerImpl implements MessageHandler {
                 .chatId(chatId)
                 .text("Вопрос: " + ticketNumber)
                 .replyMarkup(KeyboardMaker
-                        .getInlineKeyboardWithSequenceNumbers(CallbackPrefix.QUESTION_,
-                                questionService.getAllByTicketNumber(ticketNumber)))
+                        .getInlineKeyboardWithSequenceNumbers(
+                                CallbackPrefix.QUESTION_,
+                                questionService.getAllByTicketNumber(ticketNumber).size()))
                 .build();
     }
 }

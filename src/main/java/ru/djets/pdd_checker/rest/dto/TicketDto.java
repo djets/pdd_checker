@@ -2,13 +2,16 @@ package ru.djets.pdd_checker.rest.dto;
 
 import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Data
+@Getter
+@Setter
 @Accessors(chain = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class TicketDto {
@@ -24,5 +27,20 @@ public class TicketDto {
     public void removeQuestionDto(QuestionDto questionDto) {
         questionDtoList.remove(questionDto);
         questionDto.setTicketDto(null);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        TicketDto ticketDto = (TicketDto) o;
+
+        return numberTicketDto == ticketDto.numberTicketDto;
+    }
+
+    @Override
+    public int hashCode() {
+        return numberTicketDto;
     }
 }

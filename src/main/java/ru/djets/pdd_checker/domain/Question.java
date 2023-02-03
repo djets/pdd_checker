@@ -9,6 +9,7 @@ import org.hibernate.annotations.FetchMode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "questions")
@@ -52,14 +53,21 @@ public class Question {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Question question)) return false;
+        if (o == null || getClass() != o.getClass()) return false;
 
-        return textQuestion.equals(question.textQuestion);
+        Question question = (Question) o;
+
+        if (!textQuestion.equals(question.textQuestion)) return false;
+        if (!Objects.equals(pathImage, question.pathImage)) return false;
+        return Objects.equals(description, question.description);
     }
 
     @Override
     public int hashCode() {
-        return textQuestion.hashCode();
+        int result = textQuestion.hashCode();
+        result = 31 * result + (pathImage != null ? pathImage.hashCode() : 0);
+        result = 31 * result + (description != null ? description.hashCode() : 0);
+        return result;
     }
 
     @Override

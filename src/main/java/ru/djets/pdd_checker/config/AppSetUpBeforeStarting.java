@@ -39,7 +39,6 @@ public class AppSetUpBeforeStarting {
         this.botPath = properties.getBotPath();
         this.apiUrl = getApiUrl();
         try {
-            System.out.println(properties.getBotTokenPath());
             File file = new File(properties.getBotTokenPath());
             if(file.exists() && file.canRead()) {
                 this.botToken = Files.readString(file.toPath(), StandardCharsets.US_ASCII).trim();
@@ -52,7 +51,6 @@ public class AppSetUpBeforeStarting {
         //For development
         this.webClient = webClient;
         String uri = ("/bot" + this.getBotToken() +  "/setWebhook?url=" + this.getBotPath()).replace("%0A", "");
-        System.out.println(uri);
         String requestSetUrl = webClient.post()
                 .uri(uri)
                 .retrieve()

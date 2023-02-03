@@ -14,15 +14,11 @@ import ru.djets.pdd_checker.services.keyboard.KeyboardMaker;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import static java.nio.file.Files.exists;
-import static java.nio.file.Files.isReadable;
 
 
 @Component
@@ -31,11 +27,11 @@ import static java.nio.file.Files.isReadable;
 public class CallbackQueryHandlerImpl implements CallbackQueryHandler {
 
     @Override
-    public SendMessage getMessageWithInlineKeyboardForAllTicketQuestions(List<QuestionDto> questionsDto, String chatId) {
+    public SendMessage getMessageWithInlineKeyboardForAllTicketQuestions(int size, String chatId) {
         return SendMessage.builder()
                 .chatId(chatId)
                 .text("Вопросы: ")
-                .replyMarkup(KeyboardMaker.getInlineKeyboardWithSequenceNumbers(CallbackPrefix.QUESTION_, questionsDto))
+                .replyMarkup(KeyboardMaker.getInlineKeyboardWithSequenceNumbers(CallbackPrefix.QUESTION_, size))
 //                .text("Вопросы билета: " + questionsDto.get(0).getTicketDto().getNumberTicketDto() + "\n")
                 .build();
     }
@@ -49,7 +45,9 @@ public class CallbackQueryHandlerImpl implements CallbackQueryHandler {
                         questionDto.getAnswerDtoList().stream()
                                 .map(answer -> numberOfObject.getAndIncrement() + ". " + answer.getAnswerText())
                                 .collect(Collectors.joining("\n")))
-                .replyMarkup(KeyboardMaker.getInlineKeyboardWithSequenceNumbers(CallbackPrefix.ANSWER_, questionDto.getAnswerDtoList()))
+                .replyMarkup(KeyboardMaker.getInlineKeyboardWithSequenceNumbers(
+                        CallbackPrefix.ANSWER_,
+                        questionDto.getAnswerDtoList().size()))
                 .build();
     }
 
@@ -71,8 +69,9 @@ public class CallbackQueryHandlerImpl implements CallbackQueryHandler {
                         .map(answer -> numberOfObject.getAndIncrement() + ". " + answer.getAnswerText())
                         .collect(Collectors.joining("\n")));
         sendPhoto.setReplyMarkup(KeyboardMaker
-                .getInlineKeyboardWithSequenceNumbers(CallbackPrefix.ANSWER_,
-                        questionDto.getAnswerDtoList()));
+                .getInlineKeyboardWithSequenceNumbers(
+                        CallbackPrefix.ANSWER_,
+                        questionDto.getAnswerDtoList().size()));
         return sendPhoto;
     }
 }

@@ -8,35 +8,31 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageCaption;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageMedia;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
-import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.djets.pdd_checker.enums.CallbackPrefix;
 import ru.djets.pdd_checker.rest.controllers.PddCheckLongPollingBotController;
-import ru.djets.pdd_checker.rest.dto.AnswerDto;
 import ru.djets.pdd_checker.rest.dto.QuestionDto;
 import ru.djets.pdd_checker.services.QuestionService;
+import ru.djets.pdd_checker.services.TicketService;
 import ru.djets.pdd_checker.services.handlers.CallbackQueryHandler;
 import ru.djets.pdd_checker.services.handlers.MessageHandler;
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
+import static ru.djets.pdd_checker.services.keyboard.KeyboardMaker.getInlineKeyboardNextQuestion;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class TelegramBotWebhookUpdateProcessorImpl implements TelegramBotWebhookUpdateProcessor {
     Logger logger = LoggerFactory.getLogger(TelegramBotWebhookUpdateProcessorImpl.class);
+
+    TicketService ticketService;
     QuestionService questionService;
     CallbackQueryHandler callbackQueryHandler;
     MessageHandler messageHandler;
@@ -64,7 +60,7 @@ public class TelegramBotWebhookUpdateProcessorImpl implements TelegramBotWebhook
                 chatIdSelectedTicketMap.merge(chatId, numberTicket, (k, v) -> numberTicket);
 
                 requestMessage = callbackQueryHandler.getMessageWithInlineKeyboardForAllTicketQuestions(
-                        questionService.getAllByTicketNumber(numberTicket), chatId.toString());
+                        questionService.getAllByTicketNumber(numberTicket).size(), chatId.toString());
                 return requestMessage;
 
             } else if (data.startsWith(CallbackPrefix.QUESTION_.toString())) {
@@ -73,8 +69,9 @@ public class TelegramBotWebhookUpdateProcessorImpl implements TelegramBotWebhook
                 QuestionDto questionDto = questionService.getById(questionId);
 
                 if(questionDto.getPathImage() != null) {
-                    pddCheckLongPollingBotController.executeSendPhoto(callbackQueryHandler.getSendPhotoWithQuestionAndInlineKeyboardForAnswers(
-                            questionService.getById(questionId), chatId.toString()));
+                    pddCheckLongPollingBotController.executeSendPhoto(
+                            callbackQueryHandler.getSendPhotoWithQuestionAndInlineKeyboardForAnswers(
+                            questionDto, chatId.toString()));
                 } else {
                     requestMessage = callbackQueryHandler.getMessageWithQuestionAndInlineKeyboardForAnswers(
                             questionService.getById(questionId), chatId.toString());
@@ -92,37 +89,67 @@ public class TelegramBotWebhookUpdateProcessorImpl implements TelegramBotWebhook
                             break;
                         };
                     }
-                    if (correctAnswer) {
-                       return SendMessage.builder().text("верно").chatId(chatId.toString()).build();
-                    }
-
                     if(update.getCallbackQuery().getMessage().hasPhoto()) {
                         EditMessageMedia editMessageMedia = new EditMessageMedia();
                         String caption = update.getCallbackQuery().getMessage().getCaption();
+                        InlineKeyboardMarkup messageKeyboard = update.getCallbackQuery().getMessage().getReplyMarkup();
                         List<PhotoSize> photos = update.getCallbackQuery().getMessage().getPhoto();
                         String fileId = photos.stream()
                                 .sorted(Comparator.comparing(PhotoSize::getFileSize).reversed())
                                 .findFirst()
                                 .orElse(null).getFileId();
-                        InlineKeyboardMarkup replyMarkup = editMessageMedia.getReplyMarkup();
                         InputMediaPhoto inputMediaPhoto = new InputMediaPhoto(fileId);
-                        inputMediaPhoto.setCaption(caption + "\n<============>\n" + questionDto.getDescription());
+
+                        inputMediaPhoto.setCaption(caption + "\n\n" + questionDto.getDescription());
 
                         editMessageMedia.setChatId(chatId.toString());
                         editMessageMedia.setMessageId(messageId);
                         editMessageMedia.setMedia(inputMediaPhoto);
-                        editMessageMedia.setReplyMarkup(replyMarkup);
+                        editMessageMedia.setReplyMarkup(getInlineKeyboardNextQuestion(messageKeyboard, numberSelectedAnswer, correctAnswer));
                         pddCheckLongPollingBotController.executeEditMedia(editMessageMedia);
                     } else {
+                        InlineKeyboardMarkup messageKeyboard = update.getCallbackQuery().getMessage().getReplyMarkup();
                         EditMessageText editMessageText = new EditMessageText();
                         editMessageText.setChatId(chatId.toString());
                         editMessageText.setMessageId(messageId);
-                        editMessageText.setText(questionDto.getTextQuestion() + "\n<============>\n" + questionDto.getDescription());
-                        //TODO добавить inlineKeyboard 'next question'
+                        editMessageText.setText(update.getCallbackQuery().getMessage().getText() +
+                                "\n\n" + questionDto.getDescription());
+                        editMessageText.setReplyMarkup(getInlineKeyboardNextQuestion(messageKeyboard, numberSelectedAnswer, correctAnswer));
                         return editMessageText;
                     }
                 } else {
                     return SendMessage.builder().text("для начала выберите вопрос").chatId(chatId.toString()).build();
+                }
+            } else if (data.startsWith(CallbackPrefix.NEXT_.toString())) {
+                Integer numberSelectedTicket = chatIdSelectedTicketMap.get(chatId);
+                List<QuestionDto> questionDtoList = ticketService
+                        .getByTicketNumber(numberSelectedTicket)
+                        .getQuestionDtoList();
+                QuestionDto questionDto = questionService.getById(chatIdSelectedQuestionMap.get(chatId));
+                int numberNextQuestion = questionDtoList.indexOf(questionDto) + 1;
+                if (numberNextQuestion < questionDtoList.size()) {
+                    QuestionDto nextQuestionDto = questionDtoList.get(numberNextQuestion);
+                    if(nextQuestionDto != null) {
+                        if(nextQuestionDto.getPathImage() != null) {
+                            pddCheckLongPollingBotController
+                                    .executeSendPhoto(callbackQueryHandler
+                                            .getSendPhotoWithQuestionAndInlineKeyboardForAnswers(
+                                                    nextQuestionDto, chatId.toString()));
+                        } else {
+                            requestMessage = callbackQueryHandler
+                                    .getMessageWithQuestionAndInlineKeyboardForAnswers(
+                                            nextQuestionDto, chatId.toString());
+                            return requestMessage;
+                        }
+                        chatIdSelectedQuestionMap.merge(chatId, nextQuestionDto.getId(),
+                                (k, v) -> nextQuestionDto.getId());
+                    }
+                } else {
+                    requestMessage = SendMessage.builder()
+                            .chatId(chatId.toString())
+                            .text("В этом билете закончились вопросы. Перейдите к выбору билета нажав 'выбор билета'")
+                            .build();
+                    return requestMessage;
                 }
             }
 
@@ -135,16 +162,11 @@ public class TelegramBotWebhookUpdateProcessorImpl implements TelegramBotWebhook
             } else if (messageText.equals("/start")) {
                 requestMessage = messageHandler.getStartMessage(chatId.toString());
                 return requestMessage;
-            } else if (messageText.equals("show description")) {
-
-                //TODO
-                return null;
-            } else if (messageText.equals("next question")) {
-                //TODO
-                return null;
-            } else if (messageText.equals("back to questions")) {
+            } else if (messageText.equals("вернутся к вопросам")) {
                 if (chatIdSelectedTicketMap.containsKey(chatId)) {
-                    return messageHandler.getQuestionSelection(chatIdSelectedTicketMap.get(chatId), chatId.toString());
+                    return messageHandler.getQuestionSelection(
+                            chatIdSelectedTicketMap.get(chatId),
+                            chatId.toString());
                 } else {
                     return SendMessage.builder()
                             .chatId(chatId.toString())
@@ -152,7 +174,7 @@ public class TelegramBotWebhookUpdateProcessorImpl implements TelegramBotWebhook
                             "Нажмите кнопку выбора билета на встроенной клавиатуре")
                             .build();
                 }
-            } else if (messageText.equals("back to tickets")) {
+            } else if (messageText.equals("выбор билета")) {
                 return messageHandler.getTicketSelection(chatId.toString());
             }
         }

@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface CallbackQueryHandler {
 
-    SendMessage getMessageWithInlineKeyboardForAllTicketQuestions(List<QuestionDto> questionsDto, String chatId);
+    SendMessage getMessageWithInlineKeyboardForAllTicketQuestions(int size, String chatId);
 
     SendMessage getMessageWithQuestionAndInlineKeyboardForAnswers(QuestionDto questionDto, String chatId);
 

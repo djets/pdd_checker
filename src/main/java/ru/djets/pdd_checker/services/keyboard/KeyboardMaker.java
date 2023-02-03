@@ -1,5 +1,6 @@
 package ru.djets.pdd_checker.services.keyboard;
 
+import com.vdurmont.emoji.EmojiParser;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -11,51 +12,80 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class KeyboardMaker {
 
-    public static InlineKeyboardMarkup getInlineKeyboardWithSequenceNumbers(CallbackPrefix callbackPrefix, List<?> objects) {
-        InlineKeyboardMarkup ticketsInlineKeyboard = new InlineKeyboardMarkup();
-        ticketsInlineKeyboard.setKeyboard(new ArrayList<>());
-        if(callbackPrefix.equals(CallbackPrefix.ANSWER_)) {
-            ticketsInlineKeyboard.getKeyboard()
-                    .add(List.of(InlineKeyboardButton.builder()
-                            .callbackData(CallbackPrefix.DESCRIPTION_.toString())
-                            .text("show description")
-                            .build()));
-        }
-        ticketsInlineKeyboard.getKeyboard()
-                .add(getListNumberOfObjects(objects)
-                .stream()
-                .map(i -> InlineKeyboardButton.builder()
-                        .callbackData(callbackPrefix.toString() + i)
-                        .text(String.valueOf(i)).build())
-                .collect(Collectors.toList()));
-        return ticketsInlineKeyboard;
+    public static InlineKeyboardMarkup getInlineKeyboardWithSequenceNumbers(CallbackPrefix callbackPrefix, int size) {
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        inlineKeyboardMarkup.setKeyboard(new ArrayList<>());
+        getListNumberOfSize(size)
+                        .forEach(listRow -> inlineKeyboardMarkup.getKeyboard()
+                                .add(listRow
+                                        .stream()
+                                        .map(i -> InlineKeyboardButton.builder()
+                                                .callbackData(callbackPrefix.toString() + i)
+                                                .text(String.valueOf(i)).build())
+                                        .collect(Collectors.toList())));
+        return inlineKeyboardMarkup;
+    }
+
+    public static InlineKeyboardMarkup getInlineKeyboardNextQuestion(
+            InlineKeyboardMarkup messageKeyboard,
+            int numberSelectedAnswer,
+            boolean correctAnswer) {
+        List<InlineKeyboardButton> keyboardButtons = messageKeyboard.getKeyboard().get(0);
+        keyboardButtons.stream()
+                .map(inlineKeyboardButton -> {
+                    int numberButton = Integer.parseInt(inlineKeyboardButton.getText());
+                    if (numberButton == numberSelectedAnswer) {
+                        if (correctAnswer) {
+                            inlineKeyboardButton.setText(EmojiParser.parseToUnicode(":white_check_mark:") + " " + numberButton);
+                        }
+                        inlineKeyboardButton.setText(EmojiParser.parseToUnicode(":x:") + " " + numberButton);
+                    } else {
+                        inlineKeyboardButton.setText(String.valueOf(numberButton));
+                    }
+                    return inlineKeyboardButton;
+                })
+                .collect(Collectors.toList());
+        messageKeyboard.getKeyboard()
+                .add(List.of(InlineKeyboardButton.builder()
+                        .callbackData(CallbackPrefix.NEXT_.toString())
+                        .text("Следующий вопрос билета").build()));
+        return messageKeyboard;
     }
 
     public static ReplyKeyboardMarkup getMainReplyKeyboard() {
         KeyboardRow rowOne = new KeyboardRow(2);
-        rowOne.add(KeyboardButton.builder().text("stop").build());
-        rowOne.add(KeyboardButton.builder().text("next question").build());
+//        rowOne.add(KeyboardButton.builder().text("stop").build());
+//        rowOne.add(KeyboardButton.builder().text("next question").build());
 
         KeyboardRow rowTwo = new KeyboardRow(2);
-        rowTwo.add(KeyboardButton.builder().text("back to questions").build());
-        rowTwo.add(KeyboardButton.builder().text("ticket selection").build());
+        rowTwo.add(KeyboardButton.builder().text("вернутся к вопросам").build());
+        rowTwo.add(KeyboardButton.builder().text("выбор билета").build());
 
         return ReplyKeyboardMarkup.builder()
                 .clearKeyboard()
                 .keyboard(List.of(rowOne, rowTwo))
                 .selective(true)
                 .resizeKeyboard(true)
-                .oneTimeKeyboard(true)
+//                .oneTimeKeyboard(true)
                 .build();
     }
 
-    private static List<Integer> getListNumberOfObjects(List<?> objects) {
-        AtomicInteger numberOfObject = new AtomicInteger(1);
-        return objects.stream()
-                .map(question -> numberOfObject.getAndIncrement())
-                .collect(Collectors.toList());
+    private static List<List<Integer>> getListNumberOfSize(int size) {
+        List<List<Integer>> rowList = new ArrayList<>();
+        if ((double) size /8 >= 1) {
+            for (int i = 1; i <= size /8; i++) {
+                rowList.add(Stream.iterate(1, n -> n + 1).limit(8).collect(Collectors.toList()));
+            }
+            rowList.add(Stream.iterate((size /8) * 8 + 1, n -> n + 1)
+                    .limit(size %8).collect(Collectors.toList()));
+        } else {
+            rowList.add(Stream.iterate(1, n -> n + 1).limit(size %8).collect(Collectors.toList()));
+        }
+        return rowList;
+
     }
 }

@@ -5,6 +5,8 @@ import lombok.*;
 import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 
+import java.util.Objects;
+
 @Entity
 @Table(name = "answers")
 @Getter
@@ -27,7 +29,23 @@ public class Answer {
             foreignKey = @ForeignKey(name = "fk_answer_question_id"))
     Question question;
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
+        Answer answer = (Answer) o;
+
+        if (!answerText.equals(answer.answerText)) return false;
+        return Objects.equals(correctAnswer, answer.correctAnswer);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = answerText.hashCode();
+        result = 31 * result + (correctAnswer != null ? correctAnswer.hashCode() : 0);
+        return result;
+    }
 
     @Override
     public String toString() {
