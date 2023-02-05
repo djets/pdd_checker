@@ -78,12 +78,23 @@ public class KeyboardMaker {
         List<List<Integer>> rowList = new ArrayList<>();
         if ((double) size /8 >= 1) {
             for (int i = 1; i <= size /8; i++) {
-                rowList.add(Stream.iterate(1, n -> n + 1).limit(8).collect(Collectors.toList()));
+                if(i == 1) {
+                    rowList.add(Stream.iterate(1, n -> n + 1)
+                            .limit(8)
+                            .collect(Collectors.toList()));
+                } else {
+                    rowList.add(Stream.iterate((i - 1) * 8 + 1, n -> n + 1)
+                            .limit(8)
+                            .collect(Collectors.toList()));
+                }
             }
             rowList.add(Stream.iterate((size /8) * 8 + 1, n -> n + 1)
-                    .limit(size %8).collect(Collectors.toList()));
+                    .limit(size %8)
+                    .collect(Collectors.toList()));
         } else {
-            rowList.add(Stream.iterate(1, n -> n + 1).limit(size %8).collect(Collectors.toList()));
+            rowList.add(Stream.iterate(1, n -> n + 1)
+                    .limit(size %8)
+                    .collect(Collectors.toList()));
         }
         return rowList;
 

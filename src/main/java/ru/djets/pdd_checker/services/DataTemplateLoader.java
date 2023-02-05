@@ -8,7 +8,7 @@ import ru.djets.pdd_checker.domain.Answer;
 import ru.djets.pdd_checker.domain.Question;
 import ru.djets.pdd_checker.domain.Ticket;
 
-import java.util.random.RandomGenerator;
+import java.util.Random;
 import java.util.stream.Stream;
 
 @Component
@@ -32,7 +32,7 @@ public class DataTemplateLoader {
                             .map(integer1 -> {
                                 Answer answer = new Answer();
                                 answer.setAnswerText("Answer-" + integer1);
-                                answer.setCorrectAnswer(RandomGenerator.getDefault().isDeprecated());
+                                answer.setCorrectAnswer(new Random().nextBoolean());
                                 return answer;
                             })
                             .forEach(question::addAnswer);
