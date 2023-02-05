@@ -17,6 +17,8 @@ import ru.djets.pdd_checker.rest.dto.AnswerDto;
 import ru.djets.pdd_checker.rest.dto.mappers.AnswerDtoMapper;
 import ru.djets.pdd_checker.repositories.AnswerJpaRepository;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,5 +72,9 @@ class AnswerServiceImplTest {
 
     @Test
     void getAll() {
+        Mockito.when(repository.findAll()).thenReturn(List.of(expectedAnswer));
+        Mockito.when(answerDtoMapper.toDto(expectedAnswer)).thenReturn(expectedAnswerDto);
+        assertThat(answerService.getAll().size()).isEqualTo(1);
+        assertThat(answerService.getAll().get(0)).usingRecursiveComparison().isEqualTo(expectedAnswerDto);
     }
 }

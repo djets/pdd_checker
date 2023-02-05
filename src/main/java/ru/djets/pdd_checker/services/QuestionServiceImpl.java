@@ -27,13 +27,13 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public QuestionDto getById(long id) {
         return questionDtoMapper.toDto(repository.findById(id).orElseThrow(RuntimeException::new));
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public List<QuestionDto> getAll() {
         return repository.findAll().stream()
                 .map(questionDtoMapper::toDto)
@@ -41,10 +41,17 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    @Transactional
-    public List<QuestionDto> getAllByTicketNumber(int ticket) {
-        return repository.findAllByTicket_TicketNumber(ticket).stream()
+    @Transactional(readOnly = true)
+    public List<QuestionDto> getAllByTicketNumber(int ticketNumber) {
+        return repository.findAllByTicket_TicketNumber(ticketNumber).stream()
                 .map(questionDtoMapper::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int getCountAllByTicketNumber (int ticketNumber) {
+        return repository.countAllByTicket_TicketNumber(ticketNumber);
+    }
+
 }

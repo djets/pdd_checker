@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface QuestionJpaRepository extends JpaRepository<Question, Long> {
     List<Question> findAllByTicket_TicketNumber(int ticketNumber);
+    int countAllByTicket_TicketNumber(int ticketNumber);
 }

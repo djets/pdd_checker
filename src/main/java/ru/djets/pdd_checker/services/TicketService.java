@@ -1,5 +1,6 @@
 package ru.djets.pdd_checker.services;
 
+import org.springframework.transaction.annotation.Transactional;
 import ru.djets.pdd_checker.domain.Ticket;
 import ru.djets.pdd_checker.rest.dto.TicketDto;
 
@@ -10,4 +11,7 @@ public interface TicketService {
     TicketDto getById(long id);
     List<TicketDto> getAll();
     TicketDto getByTicketNumber(int ticketNumber);
+
+    @Transactional(readOnly = true)
+    int count();
 }

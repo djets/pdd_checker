@@ -8,18 +8,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.djets.pdd_checker.config.AppSetUpBeforeStarting;
-import ru.djets.pdd_checker.config.TelegramBotProperties;
-import ru.djets.pdd_checker.services.processors.TelegramBotWebhookUpdateProcessor;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import ru.djets.pdd_checker.services.processors.BotUpdateProcessor;
 
 @Component
 @Getter
@@ -29,14 +22,14 @@ public class PddCheckWebhookBotController extends TelegramWebhookBot {
     Logger logger = LoggerFactory.getLogger(PddCheckWebhookBotController.class);
 
     AppSetUpBeforeStarting setUpBeforeStarting;
-    TelegramBotWebhookUpdateProcessor botService;
+    BotUpdateProcessor botService;
 
     @Autowired
     public PddCheckWebhookBotController(
             AppSetUpBeforeStarting setUpBeforeStarting,
-            TelegramBotWebhookUpdateProcessor telegramBotWebhookUpdateProcessor) {
+            BotUpdateProcessor botUpdateProcessor) {
         this.setUpBeforeStarting = setUpBeforeStarting;
-        this.botService = telegramBotWebhookUpdateProcessor;
+        this.botService = botUpdateProcessor;
     }
 
     @Override

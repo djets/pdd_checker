@@ -10,30 +10,33 @@ import ru.djets.pdd_checker.enums.CallbackPrefix;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class KeyboardMaker {
 
-    public static InlineKeyboardMarkup getInlineKeyboardWithSequenceNumbers(CallbackPrefix callbackPrefix, int size) {
+    public static InlineKeyboardMarkup getInlineKeyboardWithSequenceNumbers(
+            CallbackPrefix callbackPrefix,
+            int size
+    ) {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         inlineKeyboardMarkup.setKeyboard(new ArrayList<>());
         getListNumberOfSize(size)
-                        .forEach(listRow -> inlineKeyboardMarkup.getKeyboard()
-                                .add(listRow
-                                        .stream()
-                                        .map(i -> InlineKeyboardButton.builder()
-                                                .callbackData(callbackPrefix.toString() + i)
-                                                .text(String.valueOf(i)).build())
-                                        .collect(Collectors.toList())));
+                .forEach(listRow -> inlineKeyboardMarkup.getKeyboard()
+                        .add(listRow
+                                .stream()
+                                .map(i -> InlineKeyboardButton.builder()
+                                        .callbackData(callbackPrefix.toString() + i)
+                                        .text(String.valueOf(i)).build())
+                                .collect(Collectors.toList())));
         return inlineKeyboardMarkup;
     }
 
     public static InlineKeyboardMarkup getInlineKeyboardNextQuestion(
             InlineKeyboardMarkup messageKeyboard,
             int numberSelectedAnswer,
-            boolean correctAnswer) {
+            boolean correctAnswer
+    ) {
         List<InlineKeyboardButton> keyboardButtons = messageKeyboard.getKeyboard().get(0);
         keyboardButtons.stream()
                 .map(inlineKeyboardButton -> {
@@ -57,28 +60,23 @@ public class KeyboardMaker {
     }
 
     public static ReplyKeyboardMarkup getMainReplyKeyboard() {
-        KeyboardRow rowOne = new KeyboardRow(2);
-//        rowOne.add(KeyboardButton.builder().text("stop").build());
-//        rowOne.add(KeyboardButton.builder().text("next question").build());
-
-        KeyboardRow rowTwo = new KeyboardRow(2);
-        rowTwo.add(KeyboardButton.builder().text("вернутся к вопросам").build());
-        rowTwo.add(KeyboardButton.builder().text("выбор билета").build());
+        KeyboardRow row = new KeyboardRow(2);
+        row.add(KeyboardButton.builder().text("вернутся к вопросам").build());
+        row.add(KeyboardButton.builder().text("выбор билета").build());
 
         return ReplyKeyboardMarkup.builder()
                 .clearKeyboard()
-                .keyboard(List.of(rowOne, rowTwo))
+                .keyboard(List.of(row))
                 .selective(true)
                 .resizeKeyboard(true)
-//                .oneTimeKeyboard(true)
                 .build();
     }
 
     private static List<List<Integer>> getListNumberOfSize(int size) {
         List<List<Integer>> rowList = new ArrayList<>();
-        if ((double) size /8 >= 1) {
-            for (int i = 1; i <= size /8; i++) {
-                if(i == 1) {
+        if ((double) size / 8 >= 1) {
+            for (int i = 1; i <= size / 8; i++) {
+                if (i == 1) {
                     rowList.add(Stream.iterate(1, n -> n + 1)
                             .limit(8)
                             .collect(Collectors.toList()));
@@ -88,12 +86,12 @@ public class KeyboardMaker {
                             .collect(Collectors.toList()));
                 }
             }
-            rowList.add(Stream.iterate((size /8) * 8 + 1, n -> n + 1)
-                    .limit(size %8)
+            rowList.add(Stream.iterate((size / 8) * 8 + 1, n -> n + 1)
+                    .limit(size % 8)
                     .collect(Collectors.toList()));
         } else {
             rowList.add(Stream.iterate(1, n -> n + 1)
-                    .limit(size %8)
+                    .limit(size % 8)
                     .collect(Collectors.toList()));
         }
         return rowList;

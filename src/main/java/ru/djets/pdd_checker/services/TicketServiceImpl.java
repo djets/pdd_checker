@@ -1,6 +1,5 @@
 package ru.djets.pdd_checker.services;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -27,13 +26,13 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    @Transactional
-    public TicketDto getById(@NotNull long id) {
+    @Transactional(readOnly = true)
+    public TicketDto getById(long id) {
         return ticketDtoMapper.toDto(repository.findById(id).orElseThrow(RuntimeException::new));
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public List<TicketDto> getAll() {
         return repository.findAll()
                 .stream()
@@ -42,9 +41,15 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    @Transactional
-    public TicketDto getByTicketNumber(@NotNull int ticketNumber) {
+    @Transactional(readOnly = true)
+    public TicketDto getByTicketNumber(int ticketNumber) {
         return ticketDtoMapper.toDto(repository
                 .findByTicketNumber(ticketNumber).orElseThrow(RuntimeException::new));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int count() {
+        return (int) repository.count();
     }
 }

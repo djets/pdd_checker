@@ -8,34 +8,26 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageMedia;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
-import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import ru.djets.pdd_checker.enums.CallbackPrefix;
 import ru.djets.pdd_checker.rest.controllers.PddCheckLongPollingBotController;
 import ru.djets.pdd_checker.rest.dto.QuestionDto;
 import ru.djets.pdd_checker.services.QuestionService;
 import ru.djets.pdd_checker.services.TicketService;
-import ru.djets.pdd_checker.services.handlers.CallbackQueryHandler;
-import ru.djets.pdd_checker.services.handlers.MessageHandler;
+import ru.djets.pdd_checker.services.handlers.MessageMaker;
 
-import java.util.*;
-
-import static ru.djets.pdd_checker.services.keyboard.KeyboardMaker.getInlineKeyboardNextQuestion;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-public class TelegramBotWebhookUpdateProcessorImpl implements TelegramBotWebhookUpdateProcessor {
-    Logger logger = LoggerFactory.getLogger(TelegramBotWebhookUpdateProcessorImpl.class);
-
+public class BotUpdateProcessorImpl implements BotUpdateProcessor {
+    Logger logger = LoggerFactory.getLogger(BotUpdateProcessorImpl.class);
     TicketService ticketService;
     QuestionService questionService;
-    CallbackQueryHandler callbackQueryHandler;
-    MessageHandler messageHandler;
+    MessageMaker messageMaker;
     PddCheckLongPollingBotController pddCheckLongPollingBotController;
 
     Map<Long, Integer> chatIdSelectedTicketMap = new HashMap<>();
@@ -59,7 +51,7 @@ public class TelegramBotWebhookUpdateProcessorImpl implements TelegramBotWebhook
 
                 chatIdSelectedTicketMap.merge(chatId, numberTicket, (k, v) -> numberTicket);
 
-                requestMessage = callbackQueryHandler.getMessageWithInlineKeyboardForAllTicketQuestions(
+                requestMessage = messageMaker.getMessageWithInlineKeyboardForAllTicketQuestions(
                         questionService.getAllByTicketNumber(numberTicket).size(), chatId.toString());
                 return requestMessage;
 
@@ -68,12 +60,12 @@ public class TelegramBotWebhookUpdateProcessorImpl implements TelegramBotWebhook
                 chatIdSelectedQuestionMap.merge(chatId, questionId, (k, v) -> questionId);
                 QuestionDto questionDto = questionService.getById(questionId);
 
-                if(questionDto.getPathImage() != null) {
+                if (questionDto.getPathImage() != null) {
                     pddCheckLongPollingBotController.executeSendPhoto(
-                            callbackQueryHandler.getSendPhotoWithQuestionAndInlineKeyboardForAnswers(
-                            questionDto, chatId.toString()));
+                            messageMaker.getSendPhotoWithQuestionAndInlineKeyboardForAnswers(
+                                    questionDto, chatId.toString()));
                 } else {
-                    requestMessage = callbackQueryHandler.getMessageWithQuestionAndInlineKeyboardForAnswers(
+                    requestMessage = messageMaker.getMessageWithQuestionAndInlineKeyboardForAnswers(
                             questionService.getById(questionId), chatId.toString());
                     return requestMessage;
                 }
@@ -83,42 +75,36 @@ public class TelegramBotWebhookUpdateProcessorImpl implements TelegramBotWebhook
                 if (chatIdSelectedQuestionMap.get(chatId) != null) {
                     QuestionDto questionDto = questionService.getById(chatIdSelectedQuestionMap.get(chatId));
                     boolean correctAnswer = false;
-                    for(int i = 1; i <= questionDto.getAnswerDtoList().size(); i++) {
-                        if (numberSelectedAnswer == i && questionDto.getAnswerDtoList().get(i - 1).getCorrectAnswer()) {
+                    for (int i = 1; i <= questionDto.getAnswerDtoList().size(); i++) {
+                        if (numberSelectedAnswer == i &&
+                                questionDto.getAnswerDtoList().get(i - 1).getCorrectAnswer()) {
                             correctAnswer = true;
                             break;
-                        };
+                        }
+                        ;
                     }
-                    if(update.getCallbackQuery().getMessage().hasPhoto()) {
-                        EditMessageMedia editMessageMedia = new EditMessageMedia();
-                        String caption = update.getCallbackQuery().getMessage().getCaption();
-                        InlineKeyboardMarkup messageKeyboard = update.getCallbackQuery().getMessage().getReplyMarkup();
-                        List<PhotoSize> photos = update.getCallbackQuery().getMessage().getPhoto();
-                        String fileId = photos.stream()
-                                .sorted(Comparator.comparing(PhotoSize::getFileSize).reversed())
-                                .findFirst()
-                                .orElse(null).getFileId();
-                        InputMediaPhoto inputMediaPhoto = new InputMediaPhoto(fileId);
-
-                        inputMediaPhoto.setCaption(caption + "\n\n" + questionDto.getDescription());
-
-                        editMessageMedia.setChatId(chatId.toString());
-                        editMessageMedia.setMessageId(messageId);
-                        editMessageMedia.setMedia(inputMediaPhoto);
-                        editMessageMedia.setReplyMarkup(getInlineKeyboardNextQuestion(messageKeyboard, numberSelectedAnswer, correctAnswer));
-                        pddCheckLongPollingBotController.executeEditMedia(editMessageMedia);
+                    if (update.getCallbackQuery().getMessage().hasPhoto()) {
+                        pddCheckLongPollingBotController
+                                .executeEditMedia(
+                                        messageMaker.getEditMessageMedia(
+                                                update,
+                                                numberSelectedAnswer,
+                                                questionDto,
+                                                correctAnswer)
+                                );
                     } else {
-                        InlineKeyboardMarkup messageKeyboard = update.getCallbackQuery().getMessage().getReplyMarkup();
-                        EditMessageText editMessageText = new EditMessageText();
-                        editMessageText.setChatId(chatId.toString());
-                        editMessageText.setMessageId(messageId);
-                        editMessageText.setText(update.getCallbackQuery().getMessage().getText() +
-                                "\n\n" + questionDto.getDescription());
-                        editMessageText.setReplyMarkup(getInlineKeyboardNextQuestion(messageKeyboard, numberSelectedAnswer, correctAnswer));
-                        return editMessageText;
+                        return messageMaker.getEditMessageText(
+                                update,
+                                numberSelectedAnswer,
+                                questionDto,
+                                correctAnswer
+                        );
                     }
                 } else {
-                    return SendMessage.builder().text("для начала выберите вопрос").chatId(chatId.toString()).build();
+                    return SendMessage.builder()
+                            .text("для начала выберите вопрос")
+                            .chatId(chatId.toString())
+                            .build();
                 }
             } else if (data.startsWith(CallbackPrefix.NEXT_.toString())) {
                 Integer numberSelectedTicket = chatIdSelectedTicketMap.get(chatId);
@@ -129,14 +115,14 @@ public class TelegramBotWebhookUpdateProcessorImpl implements TelegramBotWebhook
                 int numberNextQuestion = questionDtoList.indexOf(questionDto) + 1;
                 if (numberNextQuestion < questionDtoList.size()) {
                     QuestionDto nextQuestionDto = questionDtoList.get(numberNextQuestion);
-                    if(nextQuestionDto != null) {
-                        if(nextQuestionDto.getPathImage() != null) {
+                    if (nextQuestionDto != null) {
+                        if (nextQuestionDto.getPathImage() != null) {
                             pddCheckLongPollingBotController
-                                    .executeSendPhoto(callbackQueryHandler
+                                    .executeSendPhoto(messageMaker
                                             .getSendPhotoWithQuestionAndInlineKeyboardForAnswers(
                                                     nextQuestionDto, chatId.toString()));
                         } else {
-                            requestMessage = callbackQueryHandler
+                            requestMessage = messageMaker
                                     .getMessageWithQuestionAndInlineKeyboardForAnswers(
                                             nextQuestionDto, chatId.toString());
                             return requestMessage;
@@ -147,7 +133,8 @@ public class TelegramBotWebhookUpdateProcessorImpl implements TelegramBotWebhook
                 } else {
                     requestMessage = SendMessage.builder()
                             .chatId(chatId.toString())
-                            .text("В этом билете закончились вопросы. Перейдите к выбору билета нажав 'выбор билета'")
+                            .text("В этом билете закончились вопросы. " +
+                                    "Перейдите к выбору билета нажав 'выбор билета'")
                             .build();
                     return requestMessage;
                 }
@@ -160,22 +147,24 @@ public class TelegramBotWebhookUpdateProcessorImpl implements TelegramBotWebhook
             if (messageText == null) {
                 throw new RuntimeException("empty message text");
             } else if (messageText.equals("/start")) {
-                requestMessage = messageHandler.getStartMessage(chatId.toString());
+                requestMessage = messageMaker.getStartMessage(chatId.toString());
                 return requestMessage;
             } else if (messageText.equals("вернутся к вопросам")) {
                 if (chatIdSelectedTicketMap.containsKey(chatId)) {
-                    return messageHandler.getQuestionSelection(
+                    return messageMaker.getQuestionSelectionTicket(
                             chatIdSelectedTicketMap.get(chatId),
-                            chatId.toString());
+                            chatId.toString(),
+                            questionService.getCountAllByTicketNumber(
+                                    chatIdSelectedTicketMap.get(chatId)));
                 } else {
                     return SendMessage.builder()
                             .chatId(chatId.toString())
                             .text("Вы еще не выбрали билет. " +
-                            "Нажмите кнопку выбора билета на встроенной клавиатуре")
+                                    "Нажмите кнопку выбора билета на встроенной клавиатуре")
                             .build();
                 }
             } else if (messageText.equals("выбор билета")) {
-                return messageHandler.getTicketSelection(chatId.toString());
+                return messageMaker.getTickets(chatId.toString(), ticketService.count());
             }
         }
         return null;
