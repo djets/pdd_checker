@@ -38,8 +38,8 @@ public class KeyboardMaker {
             boolean correctAnswer
     ) {
         List<InlineKeyboardButton> keyboardButtons = messageKeyboard.getKeyboard().get(0);
-        keyboardButtons.stream()
-                .map(inlineKeyboardButton -> {
+        keyboardButtons
+                .forEach(inlineKeyboardButton -> {
                     int numberButton = Integer.parseInt(inlineKeyboardButton.getText());
                     if (numberButton == numberSelectedAnswer) {
                         if (correctAnswer) {
@@ -49,9 +49,9 @@ public class KeyboardMaker {
                     } else {
                         inlineKeyboardButton.setText(String.valueOf(numberButton));
                     }
-                    return inlineKeyboardButton;
-                })
-                .collect(Collectors.toList());
+//                    return inlineKeyboardButton;
+                });
+//                .collect(Collectors.toList());
         messageKeyboard.getKeyboard()
                 .add(List.of(InlineKeyboardButton.builder()
                         .callbackData(CallbackPrefix.NEXT_.toString())
@@ -95,6 +95,5 @@ public class KeyboardMaker {
                     .collect(Collectors.toList()));
         }
         return rowList;
-
     }
 }

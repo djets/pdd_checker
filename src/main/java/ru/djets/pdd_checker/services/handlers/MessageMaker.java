@@ -1,5 +1,6 @@
 package ru.djets.pdd_checker.services.handlers;
 
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageMedia;
@@ -21,14 +22,18 @@ public interface MessageMaker {
     EditMessageText getEditMessageText(
             Update update,
             int numberSelectedAnswer,
-            QuestionDto questionDto,
+            String description,
             boolean correctAnswer
     );
 
     EditMessageMedia getEditMessageMedia(
             Update update,
             int numberSelectedAnswer,
-            QuestionDto questionDto,
+            String description,
             boolean correctAnswer
     );
+
+    BotApiMethod<?> getMessageWrongSelectedTicket(long chatId);
+
+    BotApiMethod<?> getMessageWrongSelectedQuestion(long chatId);
 }

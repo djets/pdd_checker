@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageMedia;
@@ -142,7 +143,7 @@ public class MessageMakerImpl implements MessageMaker {
     public EditMessageText getEditMessageText(
             Update update,
             int numberSelectedAnswer,
-            QuestionDto questionDto,
+            String description,
             boolean correctAnswer
     ) {
         EditMessageText editMessageText = new EditMessageText();
@@ -150,13 +151,20 @@ public class MessageMakerImpl implements MessageMaker {
         editMessageText.setChatId(update.getCallbackQuery().getMessage().getChatId().toString());
         editMessageText.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
         editMessageText.setText(update.getCallbackQuery().getMessage().getText() +
-                "\n\n" + questionDto.getDescription());
-        editMessageText.setReplyMarkup(getInlineKeyboardNextQuestion(messageKeyboard, numberSelectedAnswer, correctAnswer));
+                "\n\n" + description);
+        editMessageText.setReplyMarkup(
+                getInlineKeyboardNextQuestion(
+                        messageKeyboard, numberSelectedAnswer, correctAnswer));
         return editMessageText;
     }
 
     @Override
-    public EditMessageMedia getEditMessageMedia(Update update, int numberSelectedAnswer, QuestionDto questionDto, boolean correctAnswer) {
+    public EditMessageMedia getEditMessageMedia(
+            Update update,
+            int numberSelectedAnswer,
+            String description,
+            boolean correctAnswer
+    ) {
         EditMessageMedia editMessageMedia = new EditMessageMedia();
         String caption = update.getCallbackQuery().getMessage().getCaption();
         InlineKeyboardMarkup messageKeyboard = update.getCallbackQuery().getMessage().getReplyMarkup();
@@ -167,7 +175,7 @@ public class MessageMakerImpl implements MessageMaker {
                 .orElse(null).getFileId();
         InputMediaPhoto inputMediaPhoto = new InputMediaPhoto(fileId);
 
-        inputMediaPhoto.setCaption(caption + "\n\n" + questionDto.getDescription());
+        inputMediaPhoto.setCaption(caption + "\n\n" + description);
 
         editMessageMedia.setChatId(
                 update.getCallbackQuery().getMessage().getChatId().toString()
@@ -176,8 +184,28 @@ public class MessageMakerImpl implements MessageMaker {
                 update.getCallbackQuery().getMessage().getMessageId()
         );
         editMessageMedia.setMedia(inputMediaPhoto);
-        editMessageMedia.setReplyMarkup(getInlineKeyboardNextQuestion(messageKeyboard, numberSelectedAnswer, correctAnswer));
+        editMessageMedia.setReplyMarkup(
+                getInlineKeyboardNextQuestion(
+                        messageKeyboard, numberSelectedAnswer, correctAnswer));
         return editMessageMedia;
+    }
+
+    @Override
+    public BotApiMethod<?> getMessageWrongSelectedTicket(long chatId) {
+        return SendMessage.builder()
+                .chatId(String.valueOf(chatId))
+                .text("Вы еще не выбрали билет. " +
+                        "Нажмите кнопку выбора билета на встроенной клавиатуре")
+                .build();
+    }
+
+    @Override
+    public BotApiMethod<?> getMessageWrongSelectedQuestion(long chatId) {
+        return SendMessage.builder()
+                .chatId(String.valueOf(chatId))
+                .text("Вы еще не выбрали вопрос. " +
+                        "Нажмите кнопку выбора вопроса на встроенной клавиатуре")
+                .build();
     }
 }
 

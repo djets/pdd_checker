@@ -1,4 +1,4 @@
-package ru.djets.pdd_checker.services;
+package ru.djets.pdd_checker.services.utils;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import ru.djets.pdd_checker.domain.Answer;
 import ru.djets.pdd_checker.domain.Question;
 import ru.djets.pdd_checker.domain.Ticket;
+import ru.djets.pdd_checker.services.TicketService;
 
 import java.util.Random;
 import java.util.stream.Stream;

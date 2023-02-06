@@ -12,13 +12,12 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.djets.pdd_checker.enums.CallbackPrefix;
 import ru.djets.pdd_checker.rest.controllers.PddCheckLongPollingBotController;
 import ru.djets.pdd_checker.rest.dto.QuestionDto;
+import ru.djets.pdd_checker.rest.dto.TicketDto;
 import ru.djets.pdd_checker.services.QuestionService;
 import ru.djets.pdd_checker.services.TicketService;
 import ru.djets.pdd_checker.services.handlers.MessageMaker;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -27,15 +26,14 @@ public class BotUpdateProcessorImpl implements BotUpdateProcessor {
     Logger logger = LoggerFactory.getLogger(BotUpdateProcessorImpl.class);
     TicketService ticketService;
     QuestionService questionService;
+    AppProcessor appProcessor;
     MessageMaker messageMaker;
     PddCheckLongPollingBotController pddCheckLongPollingBotController;
-
-    Map<Long, Integer> chatIdSelectedTicketMap = new HashMap<>();
-    Map<Long, Long> chatIdSelectedQuestionMap = new HashMap<>();
 
     @Override
     public BotApiMethod<?> processUpdate(Update update) {
         SendMessage requestMessage;
+
         if (update.hasCallbackQuery()) {
             Long chatId = update.getCallbackQuery().getMessage().getChatId();
             logger.info("ChatId: " + chatId);
@@ -43,60 +41,65 @@ public class BotUpdateProcessorImpl implements BotUpdateProcessor {
             logger.info("MessageId: " + messageId);
             String data = update.getCallbackQuery().getData();
 
-            int numberTicket;
-            long questionId;
-
             if (data.startsWith(CallbackPrefix.TICKET_.toString())) {
-                numberTicket = Integer.parseInt(data.replace(CallbackPrefix.TICKET_.toString(), ""));
-
-                chatIdSelectedTicketMap.merge(chatId, numberTicket, (k, v) -> numberTicket);
-
+                int numberSelectedTicket = Integer.parseInt(data.replace(CallbackPrefix.TICKET_.toString(), ""));
+                TicketDto selectedTicketDto = ticketService.getByTicketNumber(numberSelectedTicket);
+                appProcessor.getChatIdTicketSelectedMap().merge(
+                        chatId,
+                        selectedTicketDto, (k, v) -> selectedTicketDto
+                );
                 requestMessage = messageMaker.getMessageWithInlineKeyboardForAllTicketQuestions(
-                        questionService.getAllByTicketNumber(numberTicket).size(), chatId.toString());
+                        questionService.getAllByTicketNumber(numberSelectedTicket).size(), chatId.toString());
                 return requestMessage;
 
             } else if (data.startsWith(CallbackPrefix.QUESTION_.toString())) {
-                questionId = Long.parseLong(data.replace(CallbackPrefix.QUESTION_.toString(), ""));
-                chatIdSelectedQuestionMap.merge(chatId, questionId, (k, v) -> questionId);
-                QuestionDto questionDto = questionService.getById(questionId);
-
-                if (questionDto.getPathImage() != null) {
-                    pddCheckLongPollingBotController.executeSendPhoto(
-                            messageMaker.getSendPhotoWithQuestionAndInlineKeyboardForAnswers(
-                                    questionDto, chatId.toString()));
-                } else {
-                    requestMessage = messageMaker.getMessageWithQuestionAndInlineKeyboardForAnswers(
-                            questionService.getById(questionId), chatId.toString());
-                    return requestMessage;
+                int selectedNumberQuestionDto = Integer.parseInt(
+                        data.replace(CallbackPrefix.QUESTION_.toString(), "")
+                );
+                TicketDto selectedTicketDto = appProcessor.getChatIdTicketSelectedMap().get(chatId);
+                if(selectedTicketDto != null) {
+                    QuestionDto selectedQuestionDto = selectedTicketDto
+                            .getQuestionDtoList()
+                            .get(selectedNumberQuestionDto - 1);
+                    appProcessor.getChatIdQuestionsSelectedMap().merge(
+                            chatId,
+                            selectedQuestionDto,
+                            (k, v) -> selectedQuestionDto
+                    );
+                    if (selectedQuestionDto.getPathImage() != null) {
+                        pddCheckLongPollingBotController.executeSendPhoto(
+                                messageMaker.getSendPhotoWithQuestionAndInlineKeyboardForAnswers(
+                                        selectedQuestionDto, chatId.toString()));
+                    } else {
+                        requestMessage = messageMaker.getMessageWithQuestionAndInlineKeyboardForAnswers(
+                                selectedQuestionDto, chatId.toString());
+                        return requestMessage;
+                    }
                 }
+                return messageMaker.getMessageWrongSelectedQuestion(chatId);
 
             } else if (data.startsWith(CallbackPrefix.ANSWER_.toString())) {
-                int numberSelectedAnswer = Integer.parseInt(data.replace(CallbackPrefix.ANSWER_.toString(), ""));
-                if (chatIdSelectedQuestionMap.get(chatId) != null) {
-                    QuestionDto questionDto = questionService.getById(chatIdSelectedQuestionMap.get(chatId));
-                    boolean correctAnswer = false;
-                    for (int i = 1; i <= questionDto.getAnswerDtoList().size(); i++) {
-                        if (numberSelectedAnswer == i &&
-                                questionDto.getAnswerDtoList().get(i - 1).getCorrectAnswer()) {
-                            correctAnswer = true;
-                            break;
-                        }
-                        ;
-                    }
+                int numberSelectedAnswer = Integer.parseInt(data.replace(
+                        CallbackPrefix.ANSWER_.toString(), "")
+                );
+                if (appProcessor.getChatIdQuestionsSelectedMap().containsKey(chatId)) {
+                    QuestionDto selectedQuestionDto = appProcessor.getChatIdQuestionsSelectedMap().get(chatId);
+                    boolean correctAnswer = appProcessor.isCorrectAnswer(numberSelectedAnswer, selectedQuestionDto);
+
                     if (update.getCallbackQuery().getMessage().hasPhoto()) {
                         pddCheckLongPollingBotController
                                 .executeEditMedia(
                                         messageMaker.getEditMessageMedia(
                                                 update,
                                                 numberSelectedAnswer,
-                                                questionDto,
+                                                selectedQuestionDto.getDescription(),
                                                 correctAnswer)
                                 );
                     } else {
                         return messageMaker.getEditMessageText(
                                 update,
                                 numberSelectedAnswer,
-                                questionDto,
+                                selectedQuestionDto.getDescription(),
                                 correctAnswer
                         );
                     }
@@ -106,13 +109,14 @@ public class BotUpdateProcessorImpl implements BotUpdateProcessor {
                             .chatId(chatId.toString())
                             .build();
                 }
+
             } else if (data.startsWith(CallbackPrefix.NEXT_.toString())) {
-                Integer numberSelectedTicket = chatIdSelectedTicketMap.get(chatId);
-                List<QuestionDto> questionDtoList = ticketService
-                        .getByTicketNumber(numberSelectedTicket)
-                        .getQuestionDtoList();
-                QuestionDto questionDto = questionService.getById(chatIdSelectedQuestionMap.get(chatId));
-                int numberNextQuestion = questionDtoList.indexOf(questionDto) + 1;
+                TicketDto selectedTicketDto = appProcessor.getChatIdTicketSelectedMap().get(chatId);
+                QuestionDto selectedQuestionDto = appProcessor.getChatIdQuestionsSelectedMap().get(chatId);
+                List<QuestionDto> questionDtoList = selectedTicketDto.getQuestionDtoList();
+
+                int numberNextQuestion = questionDtoList.indexOf(selectedQuestionDto) + 1;
+
                 if (numberNextQuestion < questionDtoList.size()) {
                     QuestionDto nextQuestionDto = questionDtoList.get(numberNextQuestion);
                     if (nextQuestionDto != null) {
@@ -120,15 +124,18 @@ public class BotUpdateProcessorImpl implements BotUpdateProcessor {
                             pddCheckLongPollingBotController
                                     .executeSendPhoto(messageMaker
                                             .getSendPhotoWithQuestionAndInlineKeyboardForAnswers(
-                                                    nextQuestionDto, chatId.toString()));
+                                                    nextQuestionDto,
+                                                    chatId.toString()
+                                            )
+                                    );
                         } else {
                             requestMessage = messageMaker
                                     .getMessageWithQuestionAndInlineKeyboardForAnswers(
                                             nextQuestionDto, chatId.toString());
                             return requestMessage;
                         }
-                        chatIdSelectedQuestionMap.merge(chatId, nextQuestionDto.getId(),
-                                (k, v) -> nextQuestionDto.getId());
+                        appProcessor.getChatIdQuestionsSelectedMap()
+                                .merge(chatId, nextQuestionDto, (k, v) -> nextQuestionDto);
                     }
                 } else {
                     requestMessage = SendMessage.builder()
@@ -144,24 +151,23 @@ public class BotUpdateProcessorImpl implements BotUpdateProcessor {
             Long chatId = update.getMessage().getChatId();
             logger.info("ChatId: " + chatId);
             String messageText = update.getMessage().getText();
+
             if (messageText == null) {
                 throw new RuntimeException("empty message text");
             } else if (messageText.equals("/start")) {
                 requestMessage = messageMaker.getStartMessage(chatId.toString());
                 return requestMessage;
             } else if (messageText.equals("вернутся к вопросам")) {
-                if (chatIdSelectedTicketMap.containsKey(chatId)) {
+                if (appProcessor.getChatIdTicketSelectedMap().containsKey(chatId)) {
+                    int numberSelectedTicketDto = appProcessor.getChatIdTicketSelectedMap()
+                            .get(chatId).getNumberTicketDto();
                     return messageMaker.getQuestionSelectionTicket(
-                            chatIdSelectedTicketMap.get(chatId),
+                            numberSelectedTicketDto,
                             chatId.toString(),
-                            questionService.getCountAllByTicketNumber(
-                                    chatIdSelectedTicketMap.get(chatId)));
+                            questionService.getCountAllByTicketNumber(numberSelectedTicketDto)
+                    );
                 } else {
-                    return SendMessage.builder()
-                            .chatId(chatId.toString())
-                            .text("Вы еще не выбрали билет. " +
-                                    "Нажмите кнопку выбора билета на встроенной клавиатуре")
-                            .build();
+                    return messageMaker.getMessageWrongSelectedTicket(chatId);
                 }
             } else if (messageText.equals("выбор билета")) {
                 return messageMaker.getTickets(chatId.toString(), ticketService.count());

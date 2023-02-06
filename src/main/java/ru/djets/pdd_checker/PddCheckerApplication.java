@@ -3,7 +3,7 @@ package ru.djets.pdd_checker;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
-import ru.djets.pdd_checker.services.DataTemplateLoader;
+import ru.djets.pdd_checker.services.utils.DataTemplateLoader;
 
 @SpringBootApplication
 public class PddCheckerApplication {
