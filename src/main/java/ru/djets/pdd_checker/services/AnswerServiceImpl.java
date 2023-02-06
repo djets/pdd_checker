@@ -16,7 +16,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-@Transactional
 public class AnswerServiceImpl implements AnswerService {
     AnswerDtoMapper answerDtoMapper;
     AnswerJpaRepository repository;
@@ -27,13 +26,13 @@ public class AnswerServiceImpl implements AnswerService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public AnswerDto getById(Long id) {
         return answerDtoMapper.toDto(repository.findById(id).orElseThrow(RuntimeException::new));
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public List<AnswerDto> getAll() {
         return repository.findAll().stream()
                 .map(answerDtoMapper::toDto)

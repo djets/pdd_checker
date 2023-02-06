@@ -11,12 +11,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 class AnswerDtoMapperTest {
-    AnswerDtoMapper answerDtoMapper;
+    final AnswerDtoMapper answerDtoMapper;
     Answer expectedAnswer;
     AnswerDto expectedAnswerDto;
 
     public AnswerDtoMapperTest() {
-        this.answerDtoMapper = new AnswerDtoMapper(new QuestionDtoMapper());
+        this.answerDtoMapper = new AnswerDtoMapperImpl();
     }
 
     @BeforeEach

@@ -11,7 +11,5 @@ public interface TicketService {
     TicketDto getById(long id);
     List<TicketDto> getAll();
     TicketDto getByTicketNumber(int ticketNumber);
-
-    @Transactional(readOnly = true)
     int count();
 }

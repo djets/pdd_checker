@@ -16,7 +16,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-@Transactional
 public class QuestionServiceImpl implements QuestionService {
     QuestionDtoMapper questionDtoMapper;
     QuestionJpaRepository repository;
