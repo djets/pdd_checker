@@ -32,8 +32,6 @@ public class BotUpdateProcessorImpl implements BotUpdateProcessor {
 
     @Override
     public BotApiMethod<?> processUpdate(Update update) {
-        SendMessage requestMessage;
-
         if (update.hasCallbackQuery()) {
             Long chatId = update.getCallbackQuery().getMessage().getChatId();
             logger.info("ChatId: " + chatId);
@@ -48,9 +46,10 @@ public class BotUpdateProcessorImpl implements BotUpdateProcessor {
                         chatId,
                         selectedTicketDto, (k, v) -> selectedTicketDto
                 );
-                requestMessage = messageMaker.getMessageWithInlineKeyboardForAllTicketQuestions(
-                        questionService.getAllByTicketNumber(numberSelectedTicket).size(), chatId.toString());
-                return requestMessage;
+                return messageMaker.getMessageWithInlineKeyboardForAllTicketQuestions(
+                        questionService.getAllByTicketNumber(
+                                numberSelectedTicket).size(), chatId.toString()
+                );
 
             } else if (data.startsWith(CallbackPrefix.QUESTION_.toString())) {
                 int selectedNumberQuestionDto = Integer.parseInt(
@@ -71,12 +70,12 @@ public class BotUpdateProcessorImpl implements BotUpdateProcessor {
                                 messageMaker.getSendPhotoWithQuestionAndInlineKeyboardForAnswers(
                                         selectedQuestionDto, chatId.toString()));
                     } else {
-                        requestMessage = messageMaker.getMessageWithQuestionAndInlineKeyboardForAnswers(
+                        return messageMaker.getMessageWithQuestionAndInlineKeyboardForAnswers(
                                 selectedQuestionDto, chatId.toString());
-                        return requestMessage;
                     }
+                } else {
+                    return messageMaker.getMessageWrongSelectedQuestion(chatId);
                 }
-                return messageMaker.getMessageWrongSelectedQuestion(chatId);
 
             } else if (data.startsWith(CallbackPrefix.ANSWER_.toString())) {
                 int numberSelectedAnswer = Integer.parseInt(data.replace(
@@ -129,21 +128,15 @@ public class BotUpdateProcessorImpl implements BotUpdateProcessor {
                                             )
                                     );
                         } else {
-                            requestMessage = messageMaker
-                                    .getMessageWithQuestionAndInlineKeyboardForAnswers(
-                                            nextQuestionDto, chatId.toString());
-                            return requestMessage;
+                            return messageMaker.getMessageWithQuestionAndInlineKeyboardForAnswers(
+                                            nextQuestionDto, chatId.toString()
+                            );
                         }
                         appProcessor.getChatIdQuestionsSelectedMap()
                                 .merge(chatId, nextQuestionDto, (k, v) -> nextQuestionDto);
                     }
                 } else {
-                    requestMessage = SendMessage.builder()
-                            .chatId(chatId.toString())
-                            .text("В этом билете закончились вопросы. " +
-                                    "Перейдите к выбору билета нажав 'выбор билета'")
-                            .build();
-                    return requestMessage;
+                    return messageMaker.getMessageOutOfTickets(chatId);
                 }
             }
 
@@ -155,8 +148,7 @@ public class BotUpdateProcessorImpl implements BotUpdateProcessor {
             if (messageText == null) {
                 throw new RuntimeException("empty message text");
             } else if (messageText.equals("/start")) {
-                requestMessage = messageMaker.getStartMessage(chatId.toString());
-                return requestMessage;
+                return messageMaker.getStartMessage(chatId.toString());
             } else if (messageText.equals("вернутся к вопросам")) {
                 if (appProcessor.getChatIdTicketSelectedMap().containsKey(chatId)) {
                     int numberSelectedTicketDto = appProcessor.getChatIdTicketSelectedMap()

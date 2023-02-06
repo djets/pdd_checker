@@ -107,7 +107,8 @@ public class MessageMakerImpl implements MessageMaker {
     public SendMessage getStartMessage(String chatId) {
         return SendMessage.builder()
                 .chatId(chatId)
-                .text("Добро пожаловать в бот проверки знаний ПДД! Для начала работы приложения отправьте команду /start")
+                .text("Добро пожаловать в бот проверки знаний ПДД! " +
+                        "Для начала работы приложения отправьте команду /start")
                 .replyMarkup(KeyboardMaker.getMainReplyKeyboard())
                 .build();
     }
@@ -191,20 +192,29 @@ public class MessageMakerImpl implements MessageMaker {
     }
 
     @Override
-    public BotApiMethod<?> getMessageWrongSelectedTicket(long chatId) {
+    public SendMessage getMessageWrongSelectedTicket(long chatId) {
         return SendMessage.builder()
                 .chatId(String.valueOf(chatId))
                 .text("Вы еще не выбрали билет. " +
-                        "Нажмите кнопку выбора билета на встроенной клавиатуре")
+                        "Нажмите кнопку 'выбора билета' на встроенной клавиатуре")
                 .build();
     }
 
     @Override
-    public BotApiMethod<?> getMessageWrongSelectedQuestion(long chatId) {
+    public SendMessage getMessageWrongSelectedQuestion(long chatId) {
         return SendMessage.builder()
                 .chatId(String.valueOf(chatId))
                 .text("Вы еще не выбрали вопрос. " +
-                        "Нажмите кнопку выбора вопроса на встроенной клавиатуре")
+                        "Нажмите кнопку 'вернутся к вопросам' на встроенной клавиатуре")
+                .build();
+    }
+
+    @Override
+    public SendMessage getMessageOutOfTickets(Long chatId) {
+        return SendMessage.builder()
+                .chatId(chatId.toString())
+                .text("В этом билете закончились вопросы. " +
+                        "Перейдите к выбору билета нажав 'выбор билета'")
                 .build();
     }
 }

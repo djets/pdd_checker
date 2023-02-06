@@ -33,7 +33,9 @@ public interface MessageMaker {
             boolean correctAnswer
     );
 
-    BotApiMethod<?> getMessageWrongSelectedTicket(long chatId);
+    SendMessage getMessageWrongSelectedTicket(long chatId);
 
-    BotApiMethod<?> getMessageWrongSelectedQuestion(long chatId);
+    SendMessage getMessageWrongSelectedQuestion(long chatId);
+
+    SendMessage getMessageOutOfTickets(Long chatId);
 }
