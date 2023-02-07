@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageMedia;
@@ -36,16 +35,16 @@ public class MessageMakerImpl implements MessageMaker {
 
     @Override
     public SendMessage getMessageWithInlineKeyboardForAllTicketQuestions(
-            int size,
-            String chatId
+            String chatId,
+            int numberOfButtons
     ) {
         return SendMessage.builder()
                 .chatId(chatId)
-                .text("Вопросы: ")
+                .text("Выберите вопрос \n")
                 .replyMarkup(
                         KeyboardMaker.getInlineKeyboardWithSequenceNumbers(
                                 CallbackPrefix.QUESTION_,
-                                size)
+                                numberOfButtons, 5)
                 )
                 .build();
     }
@@ -60,11 +59,13 @@ public class MessageMakerImpl implements MessageMaker {
                 .chatId(chatId)
                 .text(questionDto.getTextQuestion() + "\n" +
                         questionDto.getAnswerDtoList().stream()
-                                .map(answer -> numberOfObject.getAndIncrement() + ". " + answer.getAnswerText())
+                                .map(answer -> numberOfObject.getAndIncrement() + ". "
+                                        + answer.getAnswerText())
                                 .collect(Collectors.joining("\n")))
                 .replyMarkup(KeyboardMaker.getInlineKeyboardWithSequenceNumbers(
                         CallbackPrefix.ANSWER_,
-                        questionDto.getAnswerDtoList().size()))
+                        questionDto.getAnswerDtoList().size(),
+                        5))
                 .build();
     }
 
@@ -97,8 +98,8 @@ public class MessageMakerImpl implements MessageMaker {
         sendPhoto.setReplyMarkup(
                 KeyboardMaker.getInlineKeyboardWithSequenceNumbers(
                         CallbackPrefix.ANSWER_,
-                        questionDto.getAnswerDtoList().size()
-                )
+                        questionDto.getAnswerDtoList().size(),
+                        5)
         );
         return sendPhoto;
     }
@@ -107,7 +108,9 @@ public class MessageMakerImpl implements MessageMaker {
     public SendMessage getStartMessage(String chatId) {
         return SendMessage.builder()
                 .chatId(chatId)
-                .text("Добро пожаловать в бот проверки знаний ПДД! " +
+                .text("Добро пожаловать в бот проверки знаний ПДД! \n" +
+                        "Данное приложение создано и запускается ИСКЛЮЧИТЕЛЬНО \nв ознакомительных целях.\n" +
+                        "Данные взяты из открытых источников.\n" +
                         "Для начала работы приложения отправьте команду /start")
                 .replyMarkup(KeyboardMaker.getMainReplyKeyboard())
                 .build();
@@ -120,11 +123,12 @@ public class MessageMakerImpl implements MessageMaker {
     ) {
         return SendMessage.builder()
                 .chatId(chatId)
-                .text("Билеты: \n")
+                .text("Выберите билет. \n")
                 .replyMarkup(KeyboardMaker
                         .getInlineKeyboardWithSequenceNumbers(
                                 CallbackPrefix.TICKET_,
-                                listTicketsSize))
+                                listTicketsSize,
+                                8))
                 .build();
     }
 
@@ -132,11 +136,12 @@ public class MessageMakerImpl implements MessageMaker {
     public SendMessage getQuestionSelectionTicket(int ticketNumber, String chatId, int listQuestionsSize) {
         return SendMessage.builder()
                 .chatId(chatId)
-                .text("Вопрос: " + ticketNumber)
+                .text("Вопросы билета " + ticketNumber + ". \n")
                 .replyMarkup(KeyboardMaker
                         .getInlineKeyboardWithSequenceNumbers(
                                 CallbackPrefix.QUESTION_,
-                                listQuestionsSize))
+                                listQuestionsSize,
+                                5))
                 .build();
     }
 

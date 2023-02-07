@@ -11,7 +11,7 @@ public class PddCheckerApplication {
     public static void main(String[] args) {
         ConfigurableApplicationContext context = SpringApplication.run(PddCheckerApplication.class, args);
         DataTemplateLoader dataTemplateLoader = context.getBean(DataTemplateLoader.class);
-        dataTemplateLoader.createQuestion(40);
+        dataTemplateLoader.createQuestion(20);
     }
 
 }

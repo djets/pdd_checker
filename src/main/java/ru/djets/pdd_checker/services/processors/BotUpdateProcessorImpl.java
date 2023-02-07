@@ -46,9 +46,10 @@ public class BotUpdateProcessorImpl implements BotUpdateProcessor {
                         chatId,
                         selectedTicketDto, (k, v) -> selectedTicketDto
                 );
+
                 return messageMaker.getMessageWithInlineKeyboardForAllTicketQuestions(
-                        questionService.getAllByTicketNumber(
-                                numberSelectedTicket).size(), chatId.toString()
+                        chatId.toString(),
+                        questionService.getAllByTicketNumber(numberSelectedTicket).size()
                 );
 
             } else if (data.startsWith(CallbackPrefix.QUESTION_.toString())) {

@@ -5,9 +5,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
+import ru.djets.pdd_checker.rest.dto.AnswerDto;
 import ru.djets.pdd_checker.rest.dto.QuestionDto;
 import ru.djets.pdd_checker.rest.dto.TicketDto;
 
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -22,9 +24,10 @@ public class AppProcessorImpl implements AppProcessor {
     @Override
     public boolean isCorrectAnswer(int numberSelectedAnswer, QuestionDto questionDto) {
         boolean correctAnswer = false;
+        List<AnswerDto> answerDtoList = questionDto.getAnswerDtoList();
         for (int i = 1; i <= questionDto.getAnswerDtoList().size(); i++) {
             if (numberSelectedAnswer == i &&
-                    questionDto.getAnswerDtoList().get(i - 1).getCorrectAnswer()) {
+                    answerDtoList.get(i - 1).getCorrectAnswer()) {
                 correctAnswer = true;
                 break;
             }

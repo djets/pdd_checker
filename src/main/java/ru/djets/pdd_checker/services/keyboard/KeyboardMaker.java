@@ -17,11 +17,12 @@ public class KeyboardMaker {
 
     public static InlineKeyboardMarkup getInlineKeyboardWithSequenceNumbers(
             CallbackPrefix callbackPrefix,
-            int size
+            int numberOfButtons,
+            int maxSizeRow
     ) {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         inlineKeyboardMarkup.setKeyboard(new ArrayList<>());
-        getListNumberOfSize(size)
+        getListNumberOfSize(numberOfButtons, maxSizeRow)
                 .forEach(listRow -> inlineKeyboardMarkup.getKeyboard()
                         .add(listRow
                                 .stream()
@@ -44,14 +45,13 @@ public class KeyboardMaker {
                     if (numberButton == numberSelectedAnswer) {
                         if (correctAnswer) {
                             inlineKeyboardButton.setText(EmojiParser.parseToUnicode(":white_check_mark:") + " " + numberButton);
+                        } else {
+                            inlineKeyboardButton.setText(EmojiParser.parseToUnicode(":x:") + " " + numberButton);
                         }
-                        inlineKeyboardButton.setText(EmojiParser.parseToUnicode(":x:") + " " + numberButton);
                     } else {
                         inlineKeyboardButton.setText(String.valueOf(numberButton));
                     }
-//                    return inlineKeyboardButton;
                 });
-//                .collect(Collectors.toList());
         messageKeyboard.getKeyboard()
                 .add(List.of(InlineKeyboardButton.builder()
                         .callbackData(CallbackPrefix.NEXT_.toString())
@@ -72,26 +72,26 @@ public class KeyboardMaker {
                 .build();
     }
 
-    private static List<List<Integer>> getListNumberOfSize(int size) {
+    private static List<List<Integer>> getListNumberOfSize(int numberOfButtons, int maxSizeRow) {
         List<List<Integer>> rowList = new ArrayList<>();
-        if ((double) size / 8 >= 1) {
-            for (int i = 1; i <= size / 8; i++) {
+        if ((double) numberOfButtons / maxSizeRow >= 1) {
+            for (int i = 1; i <= numberOfButtons / maxSizeRow; i++) {
                 if (i == 1) {
                     rowList.add(Stream.iterate(1, n -> n + 1)
-                            .limit(8)
+                            .limit(maxSizeRow)
                             .collect(Collectors.toList()));
                 } else {
-                    rowList.add(Stream.iterate((i - 1) * 8 + 1, n -> n + 1)
-                            .limit(8)
+                    rowList.add(Stream.iterate((i - 1) * maxSizeRow + 1, n -> n + 1)
+                            .limit(maxSizeRow)
                             .collect(Collectors.toList()));
                 }
             }
-            rowList.add(Stream.iterate((size / 8) * 8 + 1, n -> n + 1)
-                    .limit(size % 8)
+            rowList.add(Stream.iterate((numberOfButtons / maxSizeRow) * maxSizeRow + 1, n -> n + 1)
+                    .limit(numberOfButtons % maxSizeRow)
                     .collect(Collectors.toList()));
         } else {
             rowList.add(Stream.iterate(1, n -> n + 1)
-                    .limit(size % 8)
+                    .limit(numberOfButtons % maxSizeRow)
                     .collect(Collectors.toList()));
         }
         return rowList;

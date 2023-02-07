@@ -10,7 +10,7 @@ import ru.djets.pdd_checker.rest.dto.QuestionDto;
 
 public interface MessageMaker {
 
-    SendMessage getMessageWithInlineKeyboardForAllTicketQuestions(int size, String chatId);
+    SendMessage getMessageWithInlineKeyboardForAllTicketQuestions(String chatId, int numberOfButtons);
 
     SendMessage getMessageWithQuestionAndInlineKeyboardForAnswers(QuestionDto questionDto, String chatId);
 
