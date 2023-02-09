@@ -1,0 +1,29 @@
+spring:
+  application:
+    name:ppd_check
+  datasource:
+    url: jdbc:h2:mem:ppd_check
+    username: sa
+    password: sa
+
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+    generate-ddl: false
+
+  flyway:
+    baseline-description: "<<Flyway initial migration>>"
+    locations: db/migration
+    url: jdbc:h2:mem:ppd_check
+    password: sa
+    user: sa
+    enabled: true
+    baseline-on-migrate: true
+
+
+telegram:
+  api-url: "https://api.telegram.org"
+  bot-username: "@ppdcheck_testbot"
+  bot-token-path: "./data/token"
