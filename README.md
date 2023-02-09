@@ -12,15 +12,18 @@
 - контент должен быть максиамально приближен к актульном; 
 - приложение должно иметь одну или более баз данных.
 
-**Предварительный список изспользуемых инструментов:**
+**Список изспользуемых инструментов:**
 - IDE intelliJ 
-- Java 11
+- Java 17
 - Maven
-- SpringBoot 2.x 
-  - SpringWeb 
+- SpringBoot 3.x 
+  - SpringWebFlux 
   - SpringDataJPA
   - Lombok
   - Flyway Migration
   - и прочие инструменты в составе фреймворка
 - SQL база данных
 - Telegram Bots Java Library (https://github.com/rubenlagus/TelegramBots)
+- emoji-java (https://github.com/coding/emoji-java)
+- ngrok (https://ngrok.com/)
+- Java wrapper for ngrok (https://github.com/alexdlaird/java-ngrok)
